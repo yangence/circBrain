@@ -1,0 +1,50 @@
+SAMPLES=list(open("/home/lzl/project/edCMC/script/sample.ok").read().rstrip().split("\n"))
+
+rule all:
+    input:
+        expand("/data/users/lzl/CMC/data/BAM/STAR_Trans/{sample}.Aligned.sortedByCoord.out.bam",sample=SAMPLES)
+
+
+rule Mapping:
+    input:
+        read1="/data/users/lzl/CMC/data/fastq/{sample}.1.fq.gz",
+        read2="/data/users/lzl/CMC/data/fastq/{sample}.2.fq.gz"
+    output:
+        "/data/users/lzl/CMC/data/BAM/STAR_Trans/{sample}.Aligned.sortedByCoord.out.bam"
+    params:
+        id="{sample}",
+        prefix="/data/users/lzl/CMC/data/BAM/STAR_Trans/{sample}.",
+        tmp="/local/tmp/{sample}"
+    threads: 40
+    log: "/data/users/lzl/CMC/log/{sample}.STAR.log"
+    shell:
+        "STAR --runThreadN {threads} \
+         --genomeLoad LoadAndKeep \
+         --limitBAMsortRAM 20480000000 \
+         --readFilesCommand zcat \
+         --readFilesIn {input.read1} {input.read2} \
+         --outSAMtype BAM SortedByCoordinate \
+         --outFileNamePrefix {params.prefix} \
+         --outFilterType BySJout \
+         --outFilterMultimapNmax 20 \
+         --alignSJoverhangMin 8 \
+         --alignSJDBoverhangMin 1 \
+         --outFilterMismatchNmax 999 \
+         --outFilterMismatchNoverLmax 0.1 \
+         --alignIntronMin 20 \
+         --alignIntronMax 1000000 \
+         --alignMatesGapMax 1000000 \
+         --outFilterScoreMinOverLread 0.33 \
+         --outFilterMatchNminOverLread 0.33 \
+         --limitSjdbInsertNsj 1200000 \
+         --outSAMstrandField intronMotif \
+         --alignSoftClipAtReferenceEnds Yes \
+         --quantMode TranscriptomeSAM GeneCounts \
+         --outSAMunmapped Within \
+         --outSAMattrRGline ID:{params.id} SM:{params.id} \
+         --chimSegmentMin 15 \
+         --chimJunctionOverhangMin 15 \
+         --chimMainSegmentMultNmax 1 \
+         --outTmpDir {params.tmp} \
+         --genomeDir /local/genome/hg19_STAR_99 >{log} 2>&1"
+

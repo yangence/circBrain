@@ -1,0 +1,29 @@
+SAMPLES=list(open("/home/lzl/project/circCMC/script/fastq.ok.id").read().rstrip().split("\n"))
+prefix="/work/circ/"
+cirifile="/data/users/lzl/CMC/data/CIRI/"
+rule all:
+    input:
+        expand("{path}{sample}.txt",sample=SAMPLES,path=cirifile)
+
+rule CIRI:
+    input:
+        read1="/data/users/lzl/CMC/data/fastq/{sample}.1.fq.gz",
+        read2="/data/users/lzl/CMC/data/fastq/{sample}.2.fq.gz"
+    params:
+        sam=prefix+"{sample}.sam",
+        ref="/local/genome/hg19_BWA/hg19.fa",
+        chr="/local/genome/hg19_chr",
+        gtf="/local/annotation/gencode.v19.annotation.gtf",
+        txt=prefix+"{sample}.txt"
+    output:
+        txt=cirifile+"{sample}.txt"
+    log:
+        bwa="/data/users/lzl/CMC/log/{sample}.bwa.log",
+        ciri="/data/users/lzl/CMC/log/{sample}.ciri.log"
+    threads: 10
+    run:
+        shell("bwa mem -t {threads} -T 19 {params.ref} {input.read1} {input.read2} 1>{params.sam} 2>{log.bwa}"),
+        shell("CIRI2.pl -I {params.sam} -O {params.txt}  -R  {params.chr}  -A {params.gtf} -0  -T {threads} 1>{log.ciri} 2>&1"),
+        shell("rm {params.sam}"),
+        shell("mv {params.txt} {output.txt}")
+        

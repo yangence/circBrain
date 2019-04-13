@@ -1,0 +1,13 @@
+SAMPLES=list(range(0,440))
+baseDIR="/home/lzl/project/circCMC/script/sm_permQTL_count/"
+rule all:
+    input: expand("{dir}qtl/permutation/log/{id}.log",dir=baseDIR,id=SAMPLES)
+
+rule PermEpi:
+    input: rscript= baseDIR+"permcircQTL.R",
+    output: baseDIR+"qtl/permutation/log/{sample}.log"
+    params: "{sample}"
+    run:
+        shell("Rscript {input.rscript} {params} 1>{output}.bak 2>&1")
+        shell("cp {output}.bak {output}")
+

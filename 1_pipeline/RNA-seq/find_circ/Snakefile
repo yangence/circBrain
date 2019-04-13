@@ -1,0 +1,30 @@
+SAMPLES=list(open("/home/lzl/project/circCMC/script/sample.ok").read().rstrip().split("\n"))
+prefix="/work/circ/"
+bedfile="/data/users/lzl/CMC/data/find_circ/"
+rule all:
+    input:
+        expand("{path}{sample}.fc.bed",sample=SAMPLES,path=bedfile)
+
+rule find_circ:
+    input:
+        read1="/data/users/lzl/CMC/data/fastq/{sample}.1.fq.gz",
+        read2="/data/users/lzl/CMC/data/fastq/{sample}.2.fq.gz"
+    params:
+        bam=prefix+"{sample}.unmapped.bam",
+        ref="/local/genome/hg19_CMC/hg19.bt2",
+        chr="/local/genome/hg19_chr",
+        qfa=prefix+"{sample}.qfa"
+    output:
+        bed=bedfile+"{sample}.fc.bed"
+    log:
+        bowtie2="/data/users/lzl/CMC/log/{sample}.bowtie2.log",
+        qfa="/data/users/lzl/CMC/log/{sample}.qfa.log",
+        fc="/data/users/lzl/CMC/log/{sample}.fc.log"
+    threads: 20
+    run:
+        shell("bowtie2 -p 20 --very-sensitive  --score-min=C,-15,0 -q -x {params.ref} -1 {input.read1} -2 {input.read2} 2>{log.bowtie2} |samtools view -hbuSf 4 - > {params.bam}")
+        shell("unmapped2anchors.py {params.bam}> {params.qfa} 2>/dev/null"),
+        shell("bowtie2 -p 20 --reorder --mm --score-min=C,-15,0 -q -x {params.ref} -U {params.qfa}  2>{log.qfa} | find_circ.py -G {params.chr} -s {log.fc} >{output.bed} 2>/dev/null"),
+        shell("rm {params.qfa}"),
+        shell("rm {params.bam}")
+        

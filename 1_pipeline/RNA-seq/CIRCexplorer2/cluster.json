@@ -1,0 +1,12 @@
+{
+    "__default__" :
+    {
+        "account" : "lzl",
+        "n" : 1 ,
+        "partition" : "debug",
+        "jobname" : "CIRCexplorer2",
+        "mailuser" : "zlliu@bjmu.edu.cn",
+        "pertask" : 40
+    }
+
+} 

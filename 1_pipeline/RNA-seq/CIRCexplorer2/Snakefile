@@ -1,0 +1,26 @@
+SAMPLES=list(open("/home/lzl/project/circCMC/script/sample.ok").read().rstrip().split("\n"))
+basePath="/data/users/lzl/CMC/data/BAM/"
+rule all:
+    input:
+        expand("{path}CIRCexplorer2/{sample}.known.txt",sample=SAMPLES,path=basePath)
+
+rule PARSE:
+    input: basePath+"STAR_Trans/{sample}.Chimeric.out.junction"
+    output: basePath+"CIRCexplorer2/{sample}.bed"
+    log:  basePath+"CIRCexplorer2/{sample}.parse.log"
+    threads: 1
+    run:
+        shell("CIRCexplorer2 parse -t STAR {input} -b {output} >{log}")
+
+
+rule ANNOTATIon:
+    input: basePath+"CIRCexplorer2/{sample}.bed"
+    output: basePath+"CIRCexplorer2/{sample}.known.txt"
+    log:  basePath+"CIRCexplorer2/{sample}.annotate.log"
+    threads: 40
+    params:
+            ref="/work/circ/hg19_ref.txt",
+            fa="/work/circ/hg19.fa"
+    run:
+        shell("CIRCexplorer2 annotate -r {params.ref} -g {params.fa}  -b {input} -o {output} >{log}")
+        
