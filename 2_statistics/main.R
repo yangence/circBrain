@@ -2274,8 +2274,61 @@ for (i in 1:nrow(GWAS.list)) {
 }
 GWAS.list$EFO=GWAS.EFO
 writeLines(unique(GWAS.EFO),"GWAS.EFO.unique")
-#######solve use ontoCAT in my local computer##############
-#read the file
+#######solve ontoCAT in my local computer##############
+library(ontoCAT)
+Sys.setenv(JAVA_HOME='G:\\Program Files\\Java\\jre1.8.0_91')
+file <- system.file("extdata", "efo.owl", package="ontoCAT")
+ontologyFromFile <- getOntology(file)
+allTermsIds=getAllTermIds(ontologyFromFile)
+diseaseChildren=getTermChildrenById(ontologyFromFile,"EFO_0000408")
+unlist(lapply(diseaseChildren,getAccession))
+unlist(lapply(diseaseChildren,getLabel))
+diseaseChildren.Show=data.frame(EOF=unlist(lapply(diseaseChildren,getAccession)),
+                                label=unlist(lapply(diseaseChildren,getLabel)))
+write.table(diseaseChildren.Show,"diseaseChildren.efo.txt",col.names = T,row.names = F,sep="\t",quote = F)
+getTermChildrenById(ontologyFromFile,"EFO_0003086")
+#read the GWAS EFO file
+GWAS.EFO=readLines("GWAS.EFO.unique")
+GWAS.EFO=GWAS.EFO[-which(GWAS.EFO=="FALSE")]
+GWAS.Term=getTermById(ontologyFromFile,GWAS.EFO[1])
+getTermParentsById(ontologyFromFile,GWAS.EFO[1])
+getRootIds(ontologyFromFile)
+branchRoot=getEFOBranchRootIds(ontologyFromFile)
+diseaseTerm=getTermById(ontologyFromFile,"EFO_0000408")
+searchTermPrefix(ontologyFromFile,"disease")
+root="EFO_0000001"
+efoDIGUI=function(id,lujing){
+  if(id==root){
+    return(c(lujing,root))
+  }else{
+    a=getTermParentsById(ontologyFromFile,id)
+
+    b=getAccession(a[[1]])
+    lujing=c(lujing,b)
+    efoDIGUI(b,lujing)
+  }
+}
+efoDIGUI(GWAS.EFO[1],GWAS.EFO[1])
+allLu=list()
+for(i in 1:length(GWAS.EFO)){
+    allLu[[i]]=efoDIGUI(GWAS.EFO[i],GWAS.EFO[i])
+}
+isDisease=vector(length = length(GWAS.EFO))
+for(i in 1:length(isDisease)){
+  if("EFO_0000408" %in% allLu[[i]]){
+    isDisease[i]=1
+  }
+}
+efoDisease.df=data.frame(GWAS.EFO,isDisease)
+efolabel=vector(length = nrow(efoDisease.df))
+for(i in 1:nrow(efoDisease.df)){
+  tmp=getTermById(ontologyFromFile,as.character(efoDisease.df[i,1]))
+  efolabel[i]=getLabel(tmp)
+}
+efoDisease.df=data.frame(efoDisease.df,efolabel)
+write.table(efoDisease.df,"efoDisese.df",sep="\t",quote = F,col.names = T,row.names = F)
+
+#read the file in server
 GWAS.EFO.isDisease=read.delim("efoDisese.df")
 GWAS.EFO.disease=subset(GWAS.EFO.isDisease,isDisease==1)
 GWAS.disease=subset(GWAS.list,EFO%in%GWAS.EFO.disease$GWAS.EFO)
